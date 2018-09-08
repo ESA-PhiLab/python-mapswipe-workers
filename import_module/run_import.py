@@ -218,7 +218,8 @@ def upload_project_firebase(project):
     try:
         firebase = firebase_admin_auth()
         fb_db = firebase.database()
-        fb_db.child("projects").child(project['id']).set(project)
+        fb_db.child("projects").child(str(project['id']).zfill(4)).set(project)
+        
         logging.warning('uploaded project in firebase for project %s' % project['id'])
         return True
     except:
@@ -314,15 +315,13 @@ def get_highest_project_id():
 
     project_keys = fb_db.child('projects').shallow().get().val()
     if not project_keys:
-        project_keys = [0]
+        project_keys = [-1]
 
     project_ids = list(map(int, list(project_keys)))
     project_ids.sort()
     highest_project_id = project_ids[-1]
 
     logging.warning('returned highest project id: %s' % highest_project_id)
-    if highest_project_id == 0:
-        highest_project_id = 1
     return highest_project_id
 
 

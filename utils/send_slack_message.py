@@ -23,6 +23,7 @@ def get_slack_client():
 
 
 def send_slack_message(msg):
+    '''
     if not get_slack_client():
         return False
     else:
@@ -36,7 +37,9 @@ def send_slack_message(msg):
         )
         print('sent slack message.')
         return True
-
+    '''
+    print(msg)
+    return True
 
 ####################################################################################################
 if __name__ == '__main__':
