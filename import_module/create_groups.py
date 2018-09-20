@@ -8,6 +8,7 @@ import sys
 import json
 import logging
 import math
+from pyproj import Proj, transform
 
 from osgeo import osr, ogr, gdal
 
@@ -19,7 +20,7 @@ parser = argparse.ArgumentParser(description='Process some integers.')
 parser.add_argument('-i', '--input_file', required=False, default=None, type=str,
                     help='the input file containning the geometry as kml, shp or geojson')
 parser.add_argument('-t', '--tileserver', nargs='?', default='bing',
-                    choices=['bing', 'digital_globe', 'google', 'custom', 'sinergise'])
+                    choices=['bing', 'digital_globe', 'google', 'custom', 'sinergise', 'ramani'])
 parser.add_argument('-z', '--zoomlevel', required=False, default=18, type=int,
                     help='the zoom level.')
 parser.add_argument('-p', '--project_id', required=False, default=None, type=int,
@@ -53,6 +54,14 @@ def lat_long_zoom_to_pixel_coords(lat, lon, zoom):
     p.x = int(math.floor(x))
     p.y = int(math.floor(y))
     return p
+
+def tile_address_zoom_to_lat_lon(TileX, TileY, zoom):
+    """calculate corner coordinates (north-west) with tile address and zoom"""
+    n = 2.0 ** zoom
+    lon_deg = TileX / n * 360.0 - 180.0
+    lat_rad = math.atan(math.sinh(math.pi * (1 - 2 * TileY / n)))
+    lat_deg = math.degrees(lat_rad)
+    return(lon_deg, lat_deg)
 
 def pixel_coords_zoom_to_lat_lon(PixelX, PixelY, zoom):
     MapSize = 256 * math.pow(2, zoom)
@@ -392,11 +401,21 @@ def tile_coords_zoom_and_tileserver_to_URL(TileX, TileY, zoomlevel, tileserver,
                .format(TileX, TileY, zoomlevel))
     elif tileserver == 'sinergise':
         URL = ("https://services.sentinel-hub.com/ogc/wmts/{}?request=getTile&tilematrixset=PopularWebMercator256&tilematrix={}&tilecol={}&tilerow={}&layer={}".format(api_key, zoomlevel, TileX, TileY, wmts_layer_name))
+    elif tileserver == 'ramani':
+        print(TileX, TileY, zoomlevel)
+        lon_sw, lat_sw = tile_address_zoom_to_lat_lon(TileX, TileY+1, zoomlevel)
+        lon_ne, lat_ne = tile_address_zoom_to_lat_lon(TileX+1, TileY, zoomlevel)
+        inProj = Proj(init='epsg:4326')
+        print(lon_sw, lat_sw, lon_ne, lat_ne)
+        outProj= Proj(init='epsg:3857')
+        xmin, ymin = transform(inProj, outProj, lon_sw, lat_sw)
+        xmax, ymax = transform(inProj, outProj, lon_ne, lat_ne)
+        bbox = ("{}, {}, {}, {}".format(xmin, ymin, xmax, ymax))
+        URL = ("https://ramani.ujuizi.com/cloud/wms/ramaniddl/tilecache?SERVICE=WMS&REQUEST=GetMap&VERSION=1.1.1&LAYERS={}&FORMAT=image%252Fpng&TRANSPARENT=true&HEIGHT=256&WIDTH=256&SRS=EPSG%253A3857&TOKEN={}&BBOX={}".format(wmts_layer_name, api_key, bbox))
     elif tileserver == 'custom':
         # don't forget the linebreak!
         URL = custom_tileserver_url.format(z=zoomlevel, x=TileX, y=TileY)
     return URL
-
 
 def tile_coords_and_zoom_to_quadKey(x, y, zoom):
     """Create a quadkey for use with certain tileservers that use them."""
@@ -425,7 +444,7 @@ def create_tasks(xmin, xmax, ymin, ymax, config):
     # be aware that input is tile coordinates not lat, lon
     # create dict for tasks
     tasks = {}
-
+    tileserver = config['tileserver']
     for TileX in range(int(xmin), int(xmax)+1):
         for TileY in range(int(ymin), int(ymax)+1):
             task = {}
@@ -445,6 +464,7 @@ def create_tasks(xmin, xmax, ymin, ymax, config):
                     config['api_key'],
                     config['wmts_layer_name'],
                     config['custom_tileserver_url'])
+
             # we no longer provide wkt geometry, you can calc using some python scripts
             #task['wkt'] = geometry_from_tile_coords(TileX, TileY, zoom)
             task['wkt'] = ''
