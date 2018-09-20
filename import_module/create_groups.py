@@ -402,11 +402,9 @@ def tile_coords_zoom_and_tileserver_to_URL(TileX, TileY, zoomlevel, tileserver,
     elif tileserver == 'sinergise':
         URL = ("https://services.sentinel-hub.com/ogc/wmts/{}?request=getTile&tilematrixset=PopularWebMercator256&tilematrix={}&tilecol={}&tilerow={}&layer={}".format(api_key, zoomlevel, TileX, TileY, wmts_layer_name))
     elif tileserver == 'ramani':
-        print(TileX, TileY, zoomlevel)
         lon_sw, lat_sw = tile_address_zoom_to_lat_lon(TileX, TileY+1, zoomlevel)
         lon_ne, lat_ne = tile_address_zoom_to_lat_lon(TileX+1, TileY, zoomlevel)
         inProj = Proj(init='epsg:4326')
-        print(lon_sw, lat_sw, lon_ne, lat_ne)
         outProj= Proj(init='epsg:3857')
         xmin, ymin = transform(inProj, outProj, lon_sw, lat_sw)
         xmax, ymax = transform(inProj, outProj, lon_ne, lat_ne)
