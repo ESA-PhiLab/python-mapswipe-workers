@@ -21,3 +21,4 @@ rsa==3.4.2
 six==1.11.0
 slackclient==1.1.2
 websocket-client==0.46.0
+pyproj==1.9.5.1
