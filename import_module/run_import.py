@@ -218,8 +218,7 @@ def upload_project_firebase(project):
     try:
         firebase = firebase_admin_auth()
         fb_db = firebase.database()
-        #fb_db.child("projects").child(str(project['id']).zfill(4)).set(project)
-        fb_db.child("projects").child(project['id']).set(project)
+        fb_db.child("projects").child(str(project['id']).zfill(4)).set(project)
         
         logging.warning('uploaded project in firebase for project %s' % project['id'])
         return True
@@ -361,13 +360,8 @@ def run_import():
                 logging.warning('start processing for import key: %s' % import_key)
 
                 # set project id based on highest existing id and counter
-                # project_id = highest_project_id + counter
-                
-                # set project id based on highest existing id and counter
-                # we need to make sure that project ids are not sequential
-                # sequential project ids can cause that the data is rendered as an array rather than as json
-                project_id = highest_project_id +  (2 * counter)
-
+                project_id = highest_project_id + counter
+             
                 logging.warning('created project id for import key %s: %s' % (import_key, project_id))
 
 
